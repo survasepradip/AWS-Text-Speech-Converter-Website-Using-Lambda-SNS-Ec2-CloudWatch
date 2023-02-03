@@ -1,0 +1,240 @@
+#ansible
+
+sudo apt install python-minimal -y
+sudo paaswd ubuntu
+sudo vi /etc/ssh/sshd_config
+sudo service sshd restart
+sudo su
+
+if [ -f /usr/bin/python3 ] && [ ! -f /usr/bin/python ]; then
+  ln --symbolic /usr/bin/python3 /usr/bin/python; 
+                ln --symbolic  /usr/bin/python3 /usr/bin/python;
+fi
+
+
+ 
+#contoller
+ssh-keygen
+ssh-copy-id ubuntu@
+172.31.80.27
+172.31.93.238
+
+
+Test-----ssh
+
+sudo apt-get update
+sudo apt-get install ansible -y
+ansible --version
+
+
+Inventary
+
+cd /etc/ansible
+sudo vi hosts# insert the private ips  
+
+ansible all -m ping
+ansible all -a 'ls-la'
+
+Types of inventary=
+
+default 
+customised :
+
+cd
+mkdir ansible
+
+target1 ansible_host=
+target2 ansible_host=
+
+ansible vms -m ping -i
+ansible 
+ ansible vms -m ping -i inventory.txt
+  ansible all -m shell -a "lsb_release -a"
+ansible all -m shell -m shell -a "df -Th"
+ ansible all -m shell -a "sudo apt-get update && sudo apt-get update && sudo apt-get upgrade -y"
+ 
+  ansible 172.31.80.27 -m apt -s -a "name=docker.io state=absent"
+
+
+
+
+#create user
+ ansible all -m user -a "name=user01" -b
+ansible all -m user -a "name=user02 password=123456" -b
+ansible all -m user -a "name=user02 state=absent" -b
+ubuntu@ip-172-31-90-240:~/inventory$ ansible all -m group -a "name=group01 gid=1050 state=present" -b
+ansible all -m user -a "name=user03 uid=1200 home=/home/ubuntu/user03 group=group01 state=present" -b
+#deleteing group 
+ansible all -m group -a "name=group01 state=absent" -b
+#deleting user first
+ansible all -m user -a "name=user03 uid=1200 home=home/ubuntu/user03 group=group01 state=absent" -b
+
+ansible 
+
+#installing mysql on manage node
+ansible 172.31.80.27 -m apt -a "name=mysql-server state=present" -b 
+ansible 172.31.80.27 -m apt -a "name=python-mysqldb state=present" -b
+ ansible 172.31.80.27 -m shell -a "mysql --version"
+  ansible 172.31.80.27 -m mysql_db -a "state=dump name=all target=tmp/mydump.sql" -
+ ubuntu@ip-172-31-90-240:~/inventory$ ansible 172.31.80.27 -m mysql_db -a "state=dump name=all target=/tmp/mydump.sql" -b
+ ansible 172.31.80.27 -m mysql_db -a "state=dump name=all target=/tmp/mydump.sql" -b
+ ubuntu@ip-172-31-90-240:~/inventory$ ansible 172.31.80.27 -m mysql_db -a "name=sampledb state=import target=/tmp/mydump.sql" -b
+
+ubuntu@ip-172-31-90-240:~/inventory$ ansible 172.31.80.27 -m mysql_user -a "name=user01 state=present" -b
+ubuntu@ip-172-31-90-240:~/inventory$ ansible 172.31.80.27 -m mysql_user -a "name=user02 password=123456 priv='*.*:ALL' state=present" -b
+
+
+
+#####yml playbook
+
+
+- name: Configure nginx
+  hosts: 172.31.80.27
+  become: true
+  tasks:
+         - name: install nginx
+           apt:
+
+                   name: nginx
+                   state: present
+
+- hosts: 172.31.80.27
+  become: true
+  tasks:
+
+         - name: chnaning of port from 80 to 90
+           replace:
+                  regexp: 80
+                  replace: 90
+                  path: /etc/nginx/sites-avialable/default
+
+- hosts: 172.31.80.27
+  become: true
+  tasks:
+
+         - name: restart nginx
+           service:
+                   name: nginx
+                   state: restarted
+
+- hosts: 172.31.80.27
+  become: true
+  tasks:
+
+         - name: check url response
+           uri:
+                 url: https://172.31.80.27:90
+                 status: 200
+####@#@#@#@playbbok3
+
+
+
+- name: de[loy a eb application
+  hosts: 172.31.93.238
+  become: true
+  tasks:
+          - name: install tomcat8
+            apt:
+                    name: tomcat8
+                    state: present
+
+- hosts : 172.31.93.238
+  become: true
+  tasks:
+          - name: delete default files
+            file:
+                    path: /var/lib.tomcat8/webapps/ROOT
+                    state: absent
+
+- hosts: 172.31.93.238
+  become: true
+  tasks:
+          -name: crate a ROOT derectory
+           file:
+                  path: /var/lib.tomcat8/webapps/ROOT
+                  state: directory
+
+- hosts: 172.31.93.238
+  become: true
+  tasks:
+          - name: copy  file from local server to managed node
+            copy:
+                     src: /home/ubuntu/index.html
+                     dest: /var/lib/tomcat8/webapps/ROOT/index.html
+
+- hosts: 172.31.93.238
+  become: true
+  tasks:
+          - nmae: restart tomcat8
+            service:
+                     name: tomcat8
+                     state: restarted
+
+
+
+########
+
+ vars:
+          a: default-jdk
+          b: /home/ubuntu/ansible.txt
+          c: tree
+          d: git
+
+  tasks:
+          - name: install jdk on mamnaged node01
+            apt:
+                    name: '{{ a }}'
+                    state: present
+             when: ansible_nodename == "ip-172-31-80-27"
+
+           - name: create file on managed node02
+             file:
+                     path: '{{ b }}'
+                     state: touch
+              when: ansible_nodename == "ip-172-31-93-238"
+
+            - name: install tree in node01
+              apt:
+                     name: '{{ c }}'
+                     state: present
+              when: ansible_nodename == "ip-172-31-80-27"
+
+            - name: uninstall git from managed node02
+              apt:
+                      name: '{{ d }}'
+              when: ansible_nodename == "ip-172-31-93-238"
+
+- name: Conditional use of vsriable
+  hosts: all
+  become: true
+  vars:
+          a: default-jdk
+          b: /home/ubuntu/ansible.txt
+          c: tree
+          d: git
+
+  tasks:
+          - name: install jdk on mamnaged node01
+            apt:
+                    name: '{{ a }}'
+                    state: present
+             when: ansible_nodename == "ip-172-31-80-27"
+
+           - name: create file on managed node02
+             file:
+                     path: '{{ b }}'
+                     state: touch
+              when: ansible_nodename == "ip-172-31-93-238"
+
+            - name: install tree in node01
+              apt:
+                     name: '{{ c }}'
+                     state: present
+              when: ansible_nodename == "ip-172-31-80-27"
+
+            - name: uninstall git from managed node02
+              apt:
+                      name: '{{ d }}'
+              when: ansible_nodename == "ip-172-31-93-238"
+
+s

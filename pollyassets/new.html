@@ -1,0 +1,53 @@
+aws kms list-keys --profile userB
+aws kms encrypt --plaintext "hello" --key-id alias/myextkey --profile UserA
+
+aws kms encrypt --plaintext "hello" --key-id eb5427b3-5958-4340-9c8d-d4418eed045e --profile UserB
+
+aws kms encrypt --plaintext "hello" --key-id alias/MyNewKey1 --profile userA
+
+
+===============
+encrypt and decrypt using CMK
+aws kms encrypt --key-id alias/myextkey17sep --plaintext "hello" --profile UserB
+
+aws kms encrypt --key-id alias/myInternalNewKey --plaintext fileb://AWS_Well-Architected_Framework.pdf --output text --query CiphertextBlob --profile UserB| base64 --decode > ENCRAWS_WellArchitected_Framework.pdf
+
+aws kms encrypt --key-id aliasmyInternalKey --plaintext fileb://AWS_Well-Architected_Framework.pdf --output text --query CiphertextBlob --profile UserB| base64 --decode > OutputEncFile.pdf
+
+aws kms encrypt --key-id 8e86d3b9-8edf-49fb-acd1-eb9d5bafe6e2 --plaintext fileb://InputFile --output text --query CiphertextBlob --profile UserB| base64 --decode > OutputFile
+
+aws kms decrypt --ciphertext-blob fileb://outencfile --output text --query Plaintext --profile UserB| base64 --decode > OutputDecFile
+
+
+aws kms encrypt --key-id alias/myNewKey --plaintext fileb://inputfile.pdf --output text --query CiphertextBlob --profile userB| base64 --decode > OutputPdf.pdf
+====================================
+encrypt and decrypt using data key
+when we generate data key, we will get two things 1)plain text and ciphertext data key.
+Plaintext data key is used to encrypt data, and i usually deleted
+Cipertext/encrypted data key stored alongside data
+When data need to be decrypted, we decrypt the encrypted data key and use the returned value to decrypt the data
+
+aws kms generate-data-key --key-id alias/myInternalKey --number-of-bytes 32 --profile UserB
+
+now we will use plaintext to encrypt data which we will get from above command
+
+openssl aes-256-cbc -in AWS_Well-Architected_Framework.pdf -out AWSWellArchsecret.pdf -k "44lK8TBFgBkCaA4ePF7ZSdjM/ghLJXuekxHiHcV5bjQ="
+
+openssl enc -d -aes-256-cbc -in AWSWellArchsecret.pdf -out AWSWellnotsecret.pdf -k "44lK8TBFgBkCaA4ePF7ZSdjM/ghLJXuekxHiHcV5bjQ=" 
+=====================================
+key encryption using external key material
+
+1. Create a CMK and choose Key Material Origin as external
+2. Download Import token and public key. Public will be uset to encrypt the key we generate
+3. Generate a 256 bit key and encrypt it with the public key doanloaded in step 2
+4. upload the necrypted key material and import token to the customer master key
+
+openssl rand -out PlaintextKeyMaterial.bin 32
+
+openssl rsautl -encrypt \
+                 -in PlaintextKeyMaterial.bin \
+                 -oaep \
+                 -inkey PublicKey.bin \
+                 -keyform DER \
+                 -pubin \
+                 -out EncryptedKeyMaterial.bin
